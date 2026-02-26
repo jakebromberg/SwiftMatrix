@@ -36,6 +36,18 @@ public struct Tensor<Element> {
     /// zero-copy slicing, where a view into a larger buffer starts at a later position.
     public let offset: Int
 
+    /// The total number of logical elements in the tensor.
+    ///
+    /// Equal to the product of all dimensions in ``shape``. Cached at init time to avoid
+    /// recomputing on every access.
+    public let count: Int
+
+    /// Whether this tensor's storage is laid out contiguously in row-major order with no offset.
+    ///
+    /// Contiguous tensors can use the linear index directly as the storage index, avoiding
+    /// the cost of unraveling multi-dimensional coordinates. Cached at init time.
+    let isContiguous: Bool
+
     /// The number of axes (dimensions).
     ///
     /// A scalar has rank 0, a vector has rank 1, a matrix has rank 2, and so on.
@@ -52,6 +64,8 @@ public struct Tensor<Element> {
         self.shape = shape
         self.strides = Self.computeStrides(for: shape)
         self.offset = 0
+        self.count = count
+        self.isContiguous = true
     }
 
     /// Creates a tensor from a flat array of elements and a shape.
@@ -63,13 +77,15 @@ public struct Tensor<Element> {
     ///   - elements: The elements in row-major order.
     /// - Precondition: `elements.count` equals the product of `shape`.
     public init(shape: [Int], elements: [Element]) {
-        let count = shape.reduce(1, *)
-        precondition(elements.count == count,
-                     "Element count \(elements.count) does not match shape \(shape) (expected \(count))")
+        let expectedCount = shape.reduce(1, *)
+        precondition(elements.count == expectedCount,
+                     "Element count \(elements.count) does not match shape \(shape) (expected \(expectedCount))")
         self.storage = elements
         self.shape = shape
         self.strides = Self.computeStrides(for: shape)
         self.offset = 0
+        self.count = expectedCount
+        self.isContiguous = true
     }
 
     /// Creates a rank-2 tensor from nested arrays.
@@ -98,11 +114,13 @@ public struct Tensor<Element> {
     }
 
     /// Creates a tensor with explicit storage layout. Used internally for views.
-    init(storage: [Element], shape: [Int], strides: [Int], offset: Int) {
+    init(storage: [Element], shape: [Int], strides: [Int], offset: Int, isContiguous: Bool) {
         self.storage = storage
         self.shape = shape
         self.strides = strides
         self.offset = offset
+        self.count = shape.reduce(1, *)
+        self.isContiguous = isContiguous
     }
 
     /// Computes row-major (C-order) strides for the given shape.
@@ -116,14 +134,6 @@ public struct Tensor<Element> {
             strides[i] = strides[i + 1] * shape[i + 1]
         }
         return strides
-    }
-
-    /// Whether this tensor's storage is laid out contiguously in row-major order with no offset.
-    ///
-    /// Contiguous tensors can use the linear index directly as the storage index, avoiding
-    /// the cost of unraveling multi-dimensional coordinates.
-    var isContiguous: Bool {
-        strides == Self.computeStrides(for: shape) && offset == 0
     }
 
     /// Converts multi-dimensional indices to a flat storage index.
@@ -148,12 +158,12 @@ public struct Tensor<Element> {
     /// - Returns: The position in `storage`.
     func storageIndex(forLinearIndex linear: Int) -> Int {
         guard !isContiguous else { return linear }
+        let logicalStrides = Self.computeStrides(for: shape)
         var remaining = linear
         var storageIdx = offset
         for axis in 0..<rank {
-            let logicalStride = shape[(axis + 1)...].reduce(1, *)
-            let coord = remaining / logicalStride
-            remaining %= logicalStride
+            let coord = remaining / logicalStrides[axis]
+            remaining %= logicalStrides[axis]
             storageIdx += coord * strides[axis]
         }
         return storageIdx

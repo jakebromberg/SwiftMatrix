@@ -79,3 +79,17 @@ struct TensorHashableTests {
         #expect(set.count == 2)
     }
 }
+
+struct TensorEquatableNonContiguousTests {
+    @Test func equalDespiteDifferentStrides() {
+        let contiguous = Tensor(shape: [3, 2], elements: [1, 4, 2, 5, 3, 6])
+        let nonContiguous = Tensor(
+            storage: [1, 2, 3, 4, 5, 6],
+            shape: [3, 2],
+            strides: [1, 3],
+            offset: 0,
+            isContiguous: false
+        )
+        #expect(contiguous == nonContiguous)
+    }
+}
