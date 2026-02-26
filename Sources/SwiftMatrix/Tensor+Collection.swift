@@ -1,8 +1,7 @@
 /// `RandomAccessCollection` conformance using a flat linear index.
 ///
 /// The collection index is `Int`, representing a position in row-major iteration order.
-/// This avoids the partial-order problem that ``Pair`` has with `Comparable` and enables
-/// efficient random access.
+/// Using `Int` as the index enables efficient random access.
 extension Tensor: RandomAccessCollection {
     public var startIndex: Int { 0 }
     public var endIndex: Int { count }
