@@ -48,6 +48,13 @@ public struct Tensor<Element> {
     /// the cost of unraveling multi-dimensional coordinates. Cached at init time.
     let isContiguous: Bool
 
+    /// Row-major strides for `shape`, cached to avoid recomputing on every non-contiguous access.
+    ///
+    /// For contiguous tensors this equals `strides`. For views (transpose, permute, slice),
+    /// `strides` reflects the physical layout while `logicalStrides` reflects the row-major
+    /// iteration order for the current shape.
+    let logicalStrides: [Int]
+
     /// The number of axes (dimensions).
     ///
     /// A scalar has rank 0, a vector has rank 1, a matrix has rank 2, and so on.
@@ -60,9 +67,11 @@ public struct Tensor<Element> {
     ///   - repeatedValue: The value to fill every element with.
     public init(shape: [Int], repeating repeatedValue: Element) {
         let count = shape.reduce(1, *)
+        let computed = Self.computeStrides(for: shape)
         self.storage = Array(repeating: repeatedValue, count: count)
         self.shape = shape
-        self.strides = Self.computeStrides(for: shape)
+        self.strides = computed
+        self.logicalStrides = computed
         self.offset = 0
         self.count = count
         self.isContiguous = true
@@ -80,9 +89,11 @@ public struct Tensor<Element> {
         let expectedCount = shape.reduce(1, *)
         precondition(elements.count == expectedCount,
                      "Element count \(elements.count) does not match shape \(shape) (expected \(expectedCount))")
+        let computed = Self.computeStrides(for: shape)
         self.storage = elements
         self.shape = shape
-        self.strides = Self.computeStrides(for: shape)
+        self.strides = computed
+        self.logicalStrides = computed
         self.offset = 0
         self.count = expectedCount
         self.isContiguous = true
@@ -118,6 +129,7 @@ public struct Tensor<Element> {
         self.storage = storage
         self.shape = shape
         self.strides = strides
+        self.logicalStrides = Self.computeStrides(for: shape)
         self.offset = offset
         self.count = shape.reduce(1, *)
         self.isContiguous = isContiguous
@@ -158,7 +170,6 @@ public struct Tensor<Element> {
     /// - Returns: The position in `storage`.
     func storageIndex(forLinearIndex linear: Int) -> Int {
         guard !isContiguous else { return linear }
-        let logicalStrides = Self.computeStrides(for: shape)
         var remaining = linear
         var storageIdx = offset
         for axis in 0..<rank {
