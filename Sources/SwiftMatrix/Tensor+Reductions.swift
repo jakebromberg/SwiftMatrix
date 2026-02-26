@@ -73,6 +73,12 @@ extension Tensor where Element: AdditiveArithmetic {
     /// - Parameter axis: The axis to sum along.
     /// - Precondition: `axis` is in `0..<rank`.
     public func sum(axis: Int) -> Tensor {
+        _sumAxis(axis)
+    }
+
+    /// Generic axis-sum implementation. Extracted so Accelerate overloads can
+    /// fall back to this for rank > 2 tensors.
+    func _sumAxis(_ axis: Int) -> Tensor {
         precondition(axis >= 0 && axis < rank,
                      "Axis \(axis) out of range for rank \(rank)")
         var newShape = shape
@@ -130,7 +136,13 @@ extension Tensor where Element: FloatingPoint {
     /// - Parameter axis: The axis to average along.
     /// - Precondition: `axis` is in `0..<rank`.
     public func mean(axis: Int) -> Tensor {
-        let s = sum(axis: axis)
+        _meanAxis(axis)
+    }
+
+    /// Generic axis-mean implementation. Extracted so Accelerate overloads can
+    /// fall back to this for rank > 2 tensors.
+    func _meanAxis(_ axis: Int) -> Tensor {
+        let s = _sumAxis(axis)
         let divisor = Element(shape[axis])
         return Tensor(shape: s.shape, elements: s.map { $0 / divisor })
     }
