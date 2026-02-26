@@ -34,15 +34,6 @@ t[1, 2]  // 6
 Array(t)  // [1, 2, 3, 4, 5, 6]
 ```
 
-### Legacy Types
-
-- `Matrix<E>` -- rank-2 collection backed by nested arrays, indexed by `Pair`
-- `Pair` -- 2D index with `x` and `y` components
-- `Vector` -- 2D shape with `width` and `depth`
-- `CollectionView` -- lazy index-remapping wrapper over any `Collection`
-
 ## Roadmap
 
-- Zero-copy transpose, slice, and reshape via stride manipulation
 - Element-wise arithmetic
-- Compatibility layer bridging `Matrix`/`Vector`/`Pair` to `Tensor`
