@@ -117,3 +117,56 @@ struct TensorEdgeCaseTests {
         #expect(t.strides == [8, 4, 2, 1])
     }
 }
+
+struct TensorContiguityTests {
+    @Test func standardTensorIsContiguous() {
+        let t = Tensor(shape: [2, 3], elements: [1, 2, 3, 4, 5, 6])
+        #expect(t.isContiguous)
+    }
+
+    @Test func scalarIsContiguous() {
+        let t = Tensor(shape: [], elements: [42])
+        #expect(t.isContiguous)
+    }
+
+    @Test func nonContiguousViewReportsNonContiguous() {
+        // A 2x3 tensor with transposed strides [1, 2] instead of row-major [3, 1]
+        let t = Tensor(
+            storage: [1, 2, 3, 4, 5, 6],
+            shape: [3, 2],
+            strides: [1, 3],
+            offset: 0,
+            isContiguous: false
+        )
+        #expect(!t.isContiguous)
+    }
+}
+
+struct TensorNonContiguousAccessTests {
+    @Test func linearIndexOnNonContiguousTensor() {
+        // Simulates a transpose of a 2x3 tensor:
+        // Original (row-major): [[1, 2, 3], [4, 5, 6]]
+        // Transposed shape: [3, 2], strides: [1, 3]
+        // Logical iteration order: (0,0)=1, (0,1)=4, (1,0)=2, (1,1)=5, (2,0)=3, (2,1)=6
+        let t = Tensor(
+            storage: [1, 2, 3, 4, 5, 6],
+            shape: [3, 2],
+            strides: [1, 3],
+            offset: 0,
+            isContiguous: false
+        )
+        #expect(Array(t) == [1, 4, 2, 5, 3, 6])
+    }
+
+    @Test func linearIndexWithOffset() {
+        // A view into a larger storage with offset
+        let t = Tensor(
+            storage: [0, 0, 1, 2, 3, 4, 5, 6],
+            shape: [2, 3],
+            strides: [3, 1],
+            offset: 2,
+            isContiguous: false
+        )
+        #expect(Array(t) == [1, 2, 3, 4, 5, 6])
+    }
+}

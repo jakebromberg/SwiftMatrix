@@ -5,7 +5,7 @@
 /// efficient random access.
 extension Tensor: RandomAccessCollection {
     public var startIndex: Int { 0 }
-    public var endIndex: Int { shape.reduce(1, *) }
+    public var endIndex: Int { count }
 
     /// Accesses the element at the given linear index using an explicit argument label.
     ///
@@ -40,7 +40,7 @@ extension Tensor: RandomAccessCollection {
 /// the same logical shape and elements are considered equal.
 extension Tensor: Equatable where Element: Equatable {
     public static func == (lhs: Tensor, rhs: Tensor) -> Bool {
-        lhs.shape == rhs.shape && Array(lhs) == Array(rhs)
+        lhs.shape == rhs.shape && lhs.elementsEqual(rhs)
     }
 }
 
