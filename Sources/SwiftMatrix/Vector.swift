@@ -6,9 +6,12 @@
 //  Copyright © 2021 Jake Bromberg. All rights reserved.
 //
 
-import Foundation
-
 public struct Vector: Hashable {
-  let width: Int
-  let depth: Int
+  public let width: Int
+  public let depth: Int
+
+  public init(width: Int, depth: Int) {
+    self.width = width
+    self.depth = depth
+  }
 }

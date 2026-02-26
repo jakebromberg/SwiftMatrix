@@ -1,5 +1,3 @@
 .DS_Store
 DerivedData/
-Matrix.xcodeproj/project.xcworkspace/xcshareddata/*
-Matrix.xcodeproj/project.xcworkspace/xcuserdata/*
-Matrix.xcodeproj/xcuserdata/*
+.build/
