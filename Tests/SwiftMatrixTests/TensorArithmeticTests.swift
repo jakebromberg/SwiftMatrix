@@ -76,10 +76,36 @@ struct TensorCompoundAssignmentTests {
         #expect(a == Tensor(shape: [3], elements: [5, 7, 9]))
     }
 
+    @Test func minusEquals() {
+        var a = Tensor(shape: [3], elements: [10, 20, 30])
+        a -= Tensor(shape: [3], elements: [1, 2, 3])
+        #expect(a == Tensor(shape: [3], elements: [9, 18, 27]))
+    }
+
     @Test func timesEquals() {
         var a = Tensor(shape: [2], elements: [2, 3])
         a *= Tensor(shape: [2], elements: [4, 5])
         #expect(a == Tensor(shape: [2], elements: [8, 15]))
+    }
+
+    @Test func divideEquals() {
+        var a = Tensor(shape: [2], elements: [10.0, 20.0])
+        a /= Tensor(shape: [2], elements: [2.0, 5.0])
+        #expect(a == Tensor(shape: [2], elements: [5.0, 4.0]))
+    }
+
+    @Test func plusEqualsNonContiguous() {
+        // lhs is contiguous, rhs is transposed (non-contiguous)
+        var a = Tensor(shape: [3, 2], elements: [1, 2, 3, 4, 5, 6])
+        let b = Tensor([[1, 3, 5], [2, 4, 6]]).transposed() // shape [3,2], non-contiguous
+        a += b
+        #expect(a == Tensor(shape: [3, 2], elements: [2, 4, 6, 8, 10, 12]))
+    }
+
+    @Test func plusEqualsRank2Contiguous() {
+        var a = Tensor([[1, 2], [3, 4]])
+        a += Tensor([[10, 20], [30, 40]])
+        #expect(a == Tensor([[11, 22], [33, 44]]))
     }
 }
 
