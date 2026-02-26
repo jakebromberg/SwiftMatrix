@@ -31,6 +31,20 @@ extension Tensor: RandomAccessCollection {
 
     public func index(after i: Int) -> Int { i + 1 }
     public func index(before i: Int) -> Int { i - 1 }
+
+    /// Provides direct access to the underlying storage buffer when the tensor is contiguous.
+    ///
+    /// Returns `nil` for non-contiguous tensors (transposed, sliced, etc.), signaling that
+    /// the caller should fall back to element-by-element access.
+    ///
+    /// - Parameter body: A closure that receives an `UnsafeBufferPointer` to the storage.
+    /// - Returns: The closure's return value, or `nil` if the tensor is not contiguous.
+    public func withContiguousStorageIfAvailable<R>(
+        _ body: (UnsafeBufferPointer<Element>) throws -> R
+    ) rethrows -> R? {
+        guard isContiguous else { return nil }
+        return try storage.withUnsafeBufferPointer { try body($0) }
+    }
 }
 
 /// Tensors are equal when they have the same shape and the same elements in the same positions.
