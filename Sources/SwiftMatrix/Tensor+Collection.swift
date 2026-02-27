@@ -61,8 +61,15 @@ extension Tensor: Equatable where Element: Equatable {
 extension Tensor: Hashable where Element: Hashable {
     public func hash(into hasher: inout Hasher) {
         hasher.combine(shape)
-        for element in self {
-            hasher.combine(element)
+        if isContiguous {
+            for element in storage {
+                hasher.combine(element)
+            }
+        } else {
+            var iterator = makeStridedIterator()
+            while let element = iterator.next() {
+                hasher.combine(element)
+            }
         }
     }
 }
