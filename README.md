@@ -45,7 +45,20 @@ t.slice(axis: 0, range: 0..<1)  // slice along an axis
 
 ### Arithmetic
 
-Element-wise `+`, `-`, `*`, `/`, negation, scalar variants, and compound assignment (`+=`, `*=`).
+Element-wise `+`, `-`, `*`, `/`, negation, scalar variants, and compound assignment (`+=`, `-=`, `*=`, `/=`). Broadcasting supported:
+
+```swift
+let a = Tensor(shape: [3, 1], elements: [1, 2, 3])
+let b = Tensor(shape: [1, 4], elements: [10, 20, 30, 40])
+let c = a + b  // shape [3, 4]
+```
+
+### Lazy evaluation
+
+```swift
+// Fuse a + b * c into one pass with zero intermediate allocations
+let result = Tensor(evaluating: a.lazy + b.lazy * c.lazy)
+```
 
 ### Reductions
 
@@ -91,4 +104,4 @@ let csr3 = CSRMatrix(from: coo)      // COO -> CSR
 
 ### Accelerate optimizations
 
-On Apple platforms, `Float` and `Double` tensors automatically use vDSP and CBLAS for reductions and matrix multiplication. No API changes required -- overload resolution selects the optimized path. Generic implementations serve as fallbacks for other element types and non-Apple platforms.
+On Apple platforms, `Float` and `Double` tensors automatically use vDSP and CBLAS for reductions, matrix multiplication, and element-wise arithmetic. No API changes required -- overload resolution selects the optimized path. Generic implementations serve as fallbacks for other element types and non-Apple platforms.
