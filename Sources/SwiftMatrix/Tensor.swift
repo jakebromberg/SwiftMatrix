@@ -182,3 +182,51 @@ public struct Tensor<Element> {
 }
 
 extension Tensor: Sendable where Element: Sendable {}
+
+// MARK: - Strided iterator
+
+extension Tensor {
+    /// An iterator that traverses non-contiguous tensor elements using coordinate increment
+    /// with carry, replacing O(rank) integer divisions per element with O(1) additions.
+    struct StridedIterator: IteratorProtocol {
+        private let storage: [Element]
+        private let shape: [Int]
+        private let strides: [Int]
+        private let backstrides: [Int]
+        private var coords: [Int]
+        private var storageIdx: Int
+        private var remaining: Int
+
+        init(tensor: Tensor) {
+            self.storage = tensor.storage
+            self.shape = tensor.shape
+            self.strides = tensor.strides
+            self.backstrides = zip(tensor.strides, tensor.shape).map { $0 * $1 }
+            self.coords = [Int](repeating: 0, count: tensor.rank)
+            self.storageIdx = tensor.offset
+            self.remaining = tensor.count
+        }
+
+        mutating func next() -> Element? {
+            guard remaining > 0 else { return nil }
+            let element = storage[storageIdx]
+            remaining -= 1
+            guard remaining > 0 else { return element }
+            var axis = shape.count - 1
+            while axis >= 0 {
+                coords[axis] += 1
+                storageIdx += strides[axis]
+                if coords[axis] < shape[axis] { break }
+                coords[axis] = 0
+                storageIdx -= backstrides[axis]
+                axis -= 1
+            }
+            return element
+        }
+    }
+
+    /// Creates a strided iterator for efficient non-contiguous element traversal.
+    func makeStridedIterator() -> StridedIterator {
+        StridedIterator(tensor: self)
+    }
+}

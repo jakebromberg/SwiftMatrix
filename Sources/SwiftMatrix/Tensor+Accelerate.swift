@@ -239,7 +239,13 @@ extension Tensor {
         if isContiguous {
             return storage
         }
-        return Array(self)
+        var result = [Element]()
+        result.reserveCapacity(count)
+        var iterator = makeStridedIterator()
+        while let element = iterator.next() {
+            result.append(element)
+        }
+        return result
     }
 }
 
