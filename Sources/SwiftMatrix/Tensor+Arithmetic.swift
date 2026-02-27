@@ -1,19 +1,25 @@
-/// Element-wise arithmetic for tensors with matching shapes.
+/// Element-wise arithmetic for tensors with matching or broadcast-compatible shapes.
 ///
-/// All operations require operands to have the same shape and produce a new contiguous tensor.
-/// No broadcasting is performed. When both operands are contiguous, the storage arrays are
-/// zipped directly, bypassing the `storageIndex(forLinearIndex:)` indirection.
+/// When shapes match and both operands are contiguous, the storage arrays are zipped directly,
+/// bypassing `storageIndex(forLinearIndex:)`. When shapes differ, broadcasting is attempted
+/// using stride-0 views.
 
 private func elementwise<T>(
     _ lhs: Tensor<T>, _ rhs: Tensor<T>, body: (T, T) -> T
 ) -> Tensor<T> {
-    precondition(lhs.shape == rhs.shape,
-                 "Shape mismatch: \(lhs.shape) vs \(rhs.shape)")
-    if lhs.isContiguous && rhs.isContiguous {
-        return Tensor<T>(shape: lhs.shape,
-                         elements: zip(lhs.storage, rhs.storage).map(body))
+    if lhs.shape == rhs.shape {
+        if lhs.isContiguous && rhs.isContiguous {
+            return Tensor<T>(shape: lhs.shape,
+                             elements: zip(lhs.storage, rhs.storage).map(body))
+        }
+        return Tensor<T>(shape: lhs.shape, elements: zip(lhs, rhs).map(body))
     }
-    return Tensor<T>(shape: lhs.shape, elements: zip(lhs, rhs).map(body))
+    guard let outputShape = Tensor<T>.broadcastShape(lhs.shape, rhs.shape) else {
+        preconditionFailure("Cannot broadcast shapes \(lhs.shape) and \(rhs.shape)")
+    }
+    let lBroad = lhs.broadcast(to: outputShape)
+    let rBroad = rhs.broadcast(to: outputShape)
+    return Tensor<T>(shape: outputShape, elements: zip(lBroad, rBroad).map(body))
 }
 
 private func elementwiseInPlace<T>(

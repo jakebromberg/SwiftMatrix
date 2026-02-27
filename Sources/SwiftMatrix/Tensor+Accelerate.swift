@@ -363,15 +363,29 @@ extension Tensor where Element: AccelerateFloatingPoint {
 // MARK: - vDSP element-wise binary helpers
 
 /// Applies a vDSP binary operation to two tensors, materializing non-contiguous inputs as needed.
+/// When shapes differ, broadcasts both to the output shape before applying the operation.
 private func accelerateElementwise<T: AccelerateFloatingPoint>(
     _ lhs: Tensor<T>, _ rhs: Tensor<T>,
     body: (UnsafeBufferPointer<T>, UnsafeBufferPointer<T>, UnsafeMutableBufferPointer<T>) -> Void
 ) -> Tensor<T> {
-    precondition(lhs.shape == rhs.shape,
-                 "Shape mismatch: \(lhs.shape) vs \(rhs.shape)")
-    let lhsElements = lhs.contiguousElements()
-    let rhsElements = rhs.contiguousElements()
-    var result = [T](repeating: .zero, count: lhs.count)
+    let outputShape: [Int]
+    let lOp: Tensor<T>
+    let rOp: Tensor<T>
+    if lhs.shape == rhs.shape {
+        outputShape = lhs.shape
+        lOp = lhs
+        rOp = rhs
+    } else {
+        guard let bShape = Tensor<T>.broadcastShape(lhs.shape, rhs.shape) else {
+            preconditionFailure("Cannot broadcast shapes \(lhs.shape) and \(rhs.shape)")
+        }
+        outputShape = bShape
+        lOp = lhs.broadcast(to: bShape)
+        rOp = rhs.broadcast(to: bShape)
+    }
+    let lhsElements = lOp.contiguousElements()
+    let rhsElements = rOp.contiguousElements()
+    var result = [T](repeating: .zero, count: outputShape.reduce(1, *))
     lhsElements.withUnsafeBufferPointer { lBuf in
         rhsElements.withUnsafeBufferPointer { rBuf in
             result.withUnsafeMutableBufferPointer { resBuf in
@@ -379,7 +393,7 @@ private func accelerateElementwise<T: AccelerateFloatingPoint>(
             }
         }
     }
-    return Tensor<T>(shape: lhs.shape, elements: result)
+    return Tensor<T>(shape: outputShape, elements: result)
 }
 
 /// Applies a vDSP unary operation to a tensor.
