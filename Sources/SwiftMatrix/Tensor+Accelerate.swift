@@ -9,6 +9,7 @@ import Accelerate
 /// overload resolution can prefer the Accelerate specializations over
 /// the generic `AdditiveArithmetic`/`Numeric`/`FloatingPoint` versions.
 public protocol AccelerateFloatingPoint: FloatingPoint {
+    // Reductions
     static func _vDSPSum(_ vector: UnsafeBufferPointer<Self>) -> Self
     static func _vDSPMean(_ vector: UnsafeBufferPointer<Self>) -> Self
     static func _vDSPDot(_ lhs: UnsafeBufferPointer<Self>, _ rhs: UnsafeBufferPointer<Self>) -> Self
@@ -18,6 +19,29 @@ public protocol AccelerateFloatingPoint: FloatingPoint {
         b: UnsafePointer<Self>, ldb: Int32,
         c: UnsafeMutablePointer<Self>, ldc: Int32
     )
+
+    // Element-wise arithmetic
+    static func _vDSPAdd(
+        _ a: UnsafeBufferPointer<Self>, _ b: UnsafeBufferPointer<Self>,
+        result: UnsafeMutableBufferPointer<Self>)
+    static func _vDSPSub(
+        _ lhs: UnsafeBufferPointer<Self>, _ rhs: UnsafeBufferPointer<Self>,
+        result: UnsafeMutableBufferPointer<Self>)
+    static func _vDSPMul(
+        _ a: UnsafeBufferPointer<Self>, _ b: UnsafeBufferPointer<Self>,
+        result: UnsafeMutableBufferPointer<Self>)
+    static func _vDSPDiv(
+        _ lhs: UnsafeBufferPointer<Self>, _ rhs: UnsafeBufferPointer<Self>,
+        result: UnsafeMutableBufferPointer<Self>)
+    static func _vDSPScalarAdd(
+        _ vector: UnsafeBufferPointer<Self>, _ scalar: Self,
+        result: UnsafeMutableBufferPointer<Self>)
+    static func _vDSPScalarMul(
+        _ vector: UnsafeBufferPointer<Self>, _ scalar: Self,
+        result: UnsafeMutableBufferPointer<Self>)
+    static func _vDSPNeg(
+        _ vector: UnsafeBufferPointer<Self>,
+        result: UnsafeMutableBufferPointer<Self>)
 }
 
 // MARK: - Float conformance
@@ -51,6 +75,66 @@ extension Float: AccelerateFloatingPoint {
             0.0, c, ldc
         )
     }
+
+    public static func _vDSPAdd(
+        _ a: UnsafeBufferPointer<Float>, _ b: UnsafeBufferPointer<Float>,
+        result: UnsafeMutableBufferPointer<Float>
+    ) {
+        vDSP_vadd(a.baseAddress!, 1, b.baseAddress!, 1,
+                  result.baseAddress!, 1, vDSP_Length(a.count))
+    }
+
+    public static func _vDSPSub(
+        _ lhs: UnsafeBufferPointer<Float>, _ rhs: UnsafeBufferPointer<Float>,
+        result: UnsafeMutableBufferPointer<Float>
+    ) {
+        // vDSP_vsub computes B - A, so pass rhs as A and lhs as B to get lhs - rhs
+        vDSP_vsub(rhs.baseAddress!, 1, lhs.baseAddress!, 1,
+                  result.baseAddress!, 1, vDSP_Length(lhs.count))
+    }
+
+    public static func _vDSPMul(
+        _ a: UnsafeBufferPointer<Float>, _ b: UnsafeBufferPointer<Float>,
+        result: UnsafeMutableBufferPointer<Float>
+    ) {
+        vDSP_vmul(a.baseAddress!, 1, b.baseAddress!, 1,
+                  result.baseAddress!, 1, vDSP_Length(a.count))
+    }
+
+    public static func _vDSPDiv(
+        _ lhs: UnsafeBufferPointer<Float>, _ rhs: UnsafeBufferPointer<Float>,
+        result: UnsafeMutableBufferPointer<Float>
+    ) {
+        // vDSP_vdiv computes B / A, so pass rhs as A and lhs as B to get lhs / rhs
+        vDSP_vdiv(rhs.baseAddress!, 1, lhs.baseAddress!, 1,
+                  result.baseAddress!, 1, vDSP_Length(lhs.count))
+    }
+
+    public static func _vDSPScalarAdd(
+        _ vector: UnsafeBufferPointer<Float>, _ scalar: Float,
+        result: UnsafeMutableBufferPointer<Float>
+    ) {
+        var s = scalar
+        vDSP_vsadd(vector.baseAddress!, 1, &s,
+                   result.baseAddress!, 1, vDSP_Length(vector.count))
+    }
+
+    public static func _vDSPScalarMul(
+        _ vector: UnsafeBufferPointer<Float>, _ scalar: Float,
+        result: UnsafeMutableBufferPointer<Float>
+    ) {
+        var s = scalar
+        vDSP_vsmul(vector.baseAddress!, 1, &s,
+                   result.baseAddress!, 1, vDSP_Length(vector.count))
+    }
+
+    public static func _vDSPNeg(
+        _ vector: UnsafeBufferPointer<Float>,
+        result: UnsafeMutableBufferPointer<Float>
+    ) {
+        vDSP_vneg(vector.baseAddress!, 1,
+                  result.baseAddress!, 1, vDSP_Length(vector.count))
+    }
 }
 
 // MARK: - Double conformance
@@ -83,6 +167,64 @@ extension Double: AccelerateFloatingPoint {
             b, ldb,
             0.0, c, ldc
         )
+    }
+
+    public static func _vDSPAdd(
+        _ a: UnsafeBufferPointer<Double>, _ b: UnsafeBufferPointer<Double>,
+        result: UnsafeMutableBufferPointer<Double>
+    ) {
+        vDSP_vaddD(a.baseAddress!, 1, b.baseAddress!, 1,
+                   result.baseAddress!, 1, vDSP_Length(a.count))
+    }
+
+    public static func _vDSPSub(
+        _ lhs: UnsafeBufferPointer<Double>, _ rhs: UnsafeBufferPointer<Double>,
+        result: UnsafeMutableBufferPointer<Double>
+    ) {
+        vDSP_vsubD(rhs.baseAddress!, 1, lhs.baseAddress!, 1,
+                   result.baseAddress!, 1, vDSP_Length(lhs.count))
+    }
+
+    public static func _vDSPMul(
+        _ a: UnsafeBufferPointer<Double>, _ b: UnsafeBufferPointer<Double>,
+        result: UnsafeMutableBufferPointer<Double>
+    ) {
+        vDSP_vmulD(a.baseAddress!, 1, b.baseAddress!, 1,
+                   result.baseAddress!, 1, vDSP_Length(a.count))
+    }
+
+    public static func _vDSPDiv(
+        _ lhs: UnsafeBufferPointer<Double>, _ rhs: UnsafeBufferPointer<Double>,
+        result: UnsafeMutableBufferPointer<Double>
+    ) {
+        vDSP_vdivD(rhs.baseAddress!, 1, lhs.baseAddress!, 1,
+                   result.baseAddress!, 1, vDSP_Length(lhs.count))
+    }
+
+    public static func _vDSPScalarAdd(
+        _ vector: UnsafeBufferPointer<Double>, _ scalar: Double,
+        result: UnsafeMutableBufferPointer<Double>
+    ) {
+        var s = scalar
+        vDSP_vsaddD(vector.baseAddress!, 1, &s,
+                    result.baseAddress!, 1, vDSP_Length(vector.count))
+    }
+
+    public static func _vDSPScalarMul(
+        _ vector: UnsafeBufferPointer<Double>, _ scalar: Double,
+        result: UnsafeMutableBufferPointer<Double>
+    ) {
+        var s = scalar
+        vDSP_vsmulD(vector.baseAddress!, 1, &s,
+                    result.baseAddress!, 1, vDSP_Length(vector.count))
+    }
+
+    public static func _vDSPNeg(
+        _ vector: UnsafeBufferPointer<Double>,
+        result: UnsafeMutableBufferPointer<Double>
+    ) {
+        vDSP_vnegD(vector.baseAddress!, 1,
+                   result.baseAddress!, 1, vDSP_Length(vector.count))
     }
 }
 
@@ -215,6 +357,121 @@ extension Tensor where Element: AccelerateFloatingPoint {
         let s = sum(axis: axis)
         let divisor = Element(shape[axis])
         return Tensor(shape: s.shape, elements: s.map { $0 / divisor })
+    }
+}
+
+// MARK: - vDSP element-wise binary helpers
+
+/// Applies a vDSP binary operation to two tensors, materializing non-contiguous inputs as needed.
+private func accelerateElementwise<T: AccelerateFloatingPoint>(
+    _ lhs: Tensor<T>, _ rhs: Tensor<T>,
+    body: (UnsafeBufferPointer<T>, UnsafeBufferPointer<T>, UnsafeMutableBufferPointer<T>) -> Void
+) -> Tensor<T> {
+    precondition(lhs.shape == rhs.shape,
+                 "Shape mismatch: \(lhs.shape) vs \(rhs.shape)")
+    let lhsElements = lhs.contiguousElements()
+    let rhsElements = rhs.contiguousElements()
+    var result = [T](repeating: .zero, count: lhs.count)
+    lhsElements.withUnsafeBufferPointer { lBuf in
+        rhsElements.withUnsafeBufferPointer { rBuf in
+            result.withUnsafeMutableBufferPointer { resBuf in
+                body(lBuf, rBuf, resBuf)
+            }
+        }
+    }
+    return Tensor<T>(shape: lhs.shape, elements: result)
+}
+
+/// Applies a vDSP unary operation to a tensor.
+private func accelerateUnary<T: AccelerateFloatingPoint>(
+    _ operand: Tensor<T>,
+    body: (UnsafeBufferPointer<T>, UnsafeMutableBufferPointer<T>) -> Void
+) -> Tensor<T> {
+    let elements = operand.contiguousElements()
+    var result = [T](repeating: .zero, count: operand.count)
+    elements.withUnsafeBufferPointer { inBuf in
+        result.withUnsafeMutableBufferPointer { outBuf in
+            body(inBuf, outBuf)
+        }
+    }
+    return Tensor<T>(shape: operand.shape, elements: result)
+}
+
+// MARK: - Accelerate-optimized element-wise arithmetic
+
+extension Tensor where Element: AccelerateFloatingPoint {
+
+    // MARK: Tensor + Tensor
+
+    public static func + (lhs: Tensor, rhs: Tensor) -> Tensor {
+        accelerateElementwise(lhs, rhs) { Element._vDSPAdd($0, $1, result: $2) }
+    }
+
+    public static func - (lhs: Tensor, rhs: Tensor) -> Tensor {
+        accelerateElementwise(lhs, rhs) { Element._vDSPSub($0, $1, result: $2) }
+    }
+
+    public static func * (lhs: Tensor, rhs: Tensor) -> Tensor {
+        accelerateElementwise(lhs, rhs) { Element._vDSPMul($0, $1, result: $2) }
+    }
+
+    public static func / (lhs: Tensor, rhs: Tensor) -> Tensor {
+        accelerateElementwise(lhs, rhs) { Element._vDSPDiv($0, $1, result: $2) }
+    }
+
+    // MARK: Negation
+
+    public static prefix func - (operand: Tensor) -> Tensor {
+        accelerateUnary(operand) { Element._vDSPNeg($0, result: $1) }
+    }
+
+    // MARK: Tensor + Scalar / Scalar + Tensor
+
+    public static func + (lhs: Tensor, rhs: Element) -> Tensor {
+        accelerateUnary(lhs) { Element._vDSPScalarAdd($0, rhs, result: $1) }
+    }
+
+    public static func + (lhs: Element, rhs: Tensor) -> Tensor {
+        accelerateUnary(rhs) { Element._vDSPScalarAdd($0, lhs, result: $1) }
+    }
+
+    public static func - (lhs: Tensor, rhs: Element) -> Tensor {
+        accelerateUnary(lhs) { Element._vDSPScalarAdd($0, -rhs, result: $1) }
+    }
+
+    public static func - (lhs: Element, rhs: Tensor) -> Tensor {
+        let negated = accelerateUnary(rhs) { Element._vDSPNeg($0, result: $1) }
+        return accelerateUnary(negated) { Element._vDSPScalarAdd($0, lhs, result: $1) }
+    }
+
+    public static func * (lhs: Tensor, rhs: Element) -> Tensor {
+        accelerateUnary(lhs) { Element._vDSPScalarMul($0, rhs, result: $1) }
+    }
+
+    public static func * (lhs: Element, rhs: Tensor) -> Tensor {
+        accelerateUnary(rhs) { Element._vDSPScalarMul($0, lhs, result: $1) }
+    }
+
+    public static func / (lhs: Tensor, rhs: Element) -> Tensor {
+        accelerateUnary(lhs) { Element._vDSPScalarMul($0, 1 / rhs, result: $1) }
+    }
+
+    // MARK: Compound assignment
+
+    public static func += (lhs: inout Tensor, rhs: Tensor) {
+        lhs = lhs + rhs
+    }
+
+    public static func -= (lhs: inout Tensor, rhs: Tensor) {
+        lhs = lhs - rhs
+    }
+
+    public static func *= (lhs: inout Tensor, rhs: Tensor) {
+        lhs = lhs * rhs
+    }
+
+    public static func /= (lhs: inout Tensor, rhs: Tensor) {
+        lhs = lhs / rhs
     }
 }
 
