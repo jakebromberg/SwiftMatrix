@@ -55,6 +55,8 @@ Element-wise `+`, `-`, `*`, `/`, negation, scalar variants, compound assignment.
 
 Both are separate types from `Tensor` -- conversions via `init(from:)` and `toTensor()`.
 
+Element-wise `+`, `-`, `*`, scalar `*`, scalar `/`, negation, and compound assignment (`+=`, `-=`, `*=`). Uses two-pointer merge (addition/subtraction) and intersection (multiplication) on sorted entries for O(nnz_a + nnz_b) performance. No `sparse + scalar` (densifies) or `sparse / sparse` (divide by implicit zero).
+
 ### Performance
 
 - `logicalStrides: [Int]` cached at init time (avoids per-access `computeStrides` allocations)

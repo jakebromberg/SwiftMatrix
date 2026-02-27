@@ -100,6 +100,14 @@ let coo2 = COOTensor(from: dense)    // dense Tensor -> COO
 let csr2 = CSRMatrix(from: dense)    // dense Tensor -> CSR
 let coo3 = COOTensor(from: csr)      // CSR -> COO
 let csr3 = CSRMatrix(from: coo)      // COO -> CSR
+
+// Sparse arithmetic (same API for both COO and CSR)
+let sum = coo + coo2       // element-wise addition
+let diff = coo - coo2      // element-wise subtraction
+let prod = coo * coo2      // element-wise multiplication (intersection)
+let scaled = coo * 3       // scalar multiply
+let divided = coo / 2.0    // scalar divide (FloatingPoint)
+let neg = -coo             // negation
 ```
 
 ### Accelerate optimizations
