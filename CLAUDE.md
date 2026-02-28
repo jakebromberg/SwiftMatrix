@@ -57,13 +57,11 @@ Both are separate types from `Tensor` -- conversions via `init(from:)` and `toTe
 
 Element-wise `+`, `-`, `*`, scalar `*`, scalar `/`, negation, and compound assignment (`+=`, `-=`, `*=`). Uses two-pointer merge (addition/subtraction) and intersection (multiplication) on sorted entries for O(nnz_a + nnz_b) performance. No `sparse + scalar` (densifies) or `sparse / sparse` (divide by implicit zero).
 
-### Sparse Linear Algebra
+### Sparse Reductions
 
-`CSRMatrix.matvec(_:_:)` (SpMV): CSR [m,n] * dense vector [n] -> dense [m]. Row-iterate CSR, accumulate `value * vector[col]`.
+`COOTensor`: `sum()`, `mean()`, `dot(_:_:)`. Sum/mean operate on stored values in O(nnz); mean divides by total `count` (not nnz). Dot uses two-pointer intersection on sorted rank-1 indices.
 
-`CSRMatrix.matmul(_:_:)` (SpMM, sparse * dense): CSR [m,k] * Tensor [k,n] -> Tensor [m,n]. Scatter approach: for each nonzero A[row,col], scatter into result row.
-
-`CSRMatrix.matmul(_:_:)` (SpGEMM, sparse * sparse): CSR [m,k] * CSR [k,n] -> CSR [m,n]. Row-wise dense accumulator with boolean marker array. Keeps explicit zeros from cancellation.
+`CSRMatrix`: `sum()`, `sum(axis:)`, `mean()`, `mean(axis:)`. Axis 0 (column sums) accumulates into column buckets; axis 1 (row sums) iterates each row's range. All O(nnz). No axis reductions for COO (lacks row structure).
 
 ### Performance
 
