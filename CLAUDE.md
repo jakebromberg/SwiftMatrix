@@ -57,6 +57,14 @@ Both are separate types from `Tensor` -- conversions via `init(from:)` and `toTe
 
 Element-wise `+`, `-`, `*`, scalar `*`, scalar `/`, negation, and compound assignment (`+=`, `-=`, `*=`). Uses two-pointer merge (addition/subtraction) and intersection (multiplication) on sorted entries for O(nnz_a + nnz_b) performance. No `sparse + scalar` (densifies) or `sparse / sparse` (divide by implicit zero).
 
+### Sparse Linear Algebra
+
+`CSRMatrix.matvec(_:_:)` (SpMV): CSR [m,n] * dense vector [n] -> dense [m]. Row-iterate CSR, accumulate `value * vector[col]`.
+
+`CSRMatrix.matmul(_:_:)` (SpMM, sparse * dense): CSR [m,k] * Tensor [k,n] -> Tensor [m,n]. Scatter approach: for each nonzero A[row,col], scatter into result row.
+
+`CSRMatrix.matmul(_:_:)` (SpGEMM, sparse * sparse): CSR [m,k] * CSR [k,n] -> CSR [m,n]. Row-wise dense accumulator with boolean marker array. Keeps explicit zeros from cancellation.
+
 ### Performance
 
 - `logicalStrides: [Int]` cached at init time (avoids per-access `computeStrides` allocations)
