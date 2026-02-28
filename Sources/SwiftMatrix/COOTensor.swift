@@ -69,7 +69,6 @@ public struct COOTensor<Element> {
         }
 
         // Sort entries by row-major lexicographic order
-        let strides = Tensor<Element>.computeStrides(for: shape)
         var entryOrder = Array(0..<nnz)
         entryOrder.sort { a, b in
             for axis in 0..<shape.count {
