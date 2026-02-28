@@ -1,7 +1,7 @@
 /// Reductions and linear algebra operations for ``Tensor``.
 
 extension Tensor where Element: Numeric {
-    /// Computes the dot product (inner product) of two rank-1 tensors.
+    /// Computes the dot product (inner product) of two rank-1 tensors. O(n).
     ///
     /// ```swift
     /// let a = Tensor(shape: [3], elements: [1, 2, 3])
@@ -19,7 +19,7 @@ extension Tensor where Element: Numeric {
         return zip(lhs, rhs).reduce(.zero) { $0 + $1.0 * $1.1 }
     }
 
-    /// Multiplies two rank-2 tensors (matrix multiplication).
+    /// Multiplies two rank-2 tensors (matrix multiplication). O(m * n * k).
     ///
     /// ```swift
     /// let a = Tensor([[1, 2], [3, 4]])       // 2x2
@@ -55,7 +55,7 @@ extension Tensor where Element: Numeric {
 // MARK: - Sum
 
 extension Tensor where Element: AdditiveArithmetic {
-    /// Returns the sum of all elements.
+    /// Returns the sum of all elements. O(count).
     ///
     /// ```swift
     /// Tensor([[1, 2, 3], [4, 5, 6]]).sum()  // 21
@@ -64,7 +64,7 @@ extension Tensor where Element: AdditiveArithmetic {
         reduce(.zero, +)
     }
 
-    /// Returns a tensor with one axis collapsed by summation.
+    /// Returns a tensor with one axis collapsed by summation. O(count).
     ///
     /// The result has rank reduced by 1. For a tensor with shape `[2, 3]`:
     /// - `sum(axis: 0)` produces shape `[3]` (sum across rows)
@@ -118,7 +118,9 @@ extension Tensor where Element: AdditiveArithmetic {
 // MARK: - Mean
 
 extension Tensor where Element: FloatingPoint {
-    /// Returns the arithmetic mean of all elements.
+    /// Returns the arithmetic mean of all elements. O(count).
+    ///
+    /// The divisor is ``count`` (the total number of elements).
     ///
     /// ```swift
     /// Tensor(shape: [4], elements: [1.0, 2.0, 3.0, 4.0]).mean()  // 2.5
@@ -127,7 +129,9 @@ extension Tensor where Element: FloatingPoint {
         sum() / Element(count)
     }
 
-    /// Returns a tensor with one axis collapsed by averaging.
+    /// Returns a tensor with one axis collapsed by averaging. O(count).
+    ///
+    /// The divisor is the size of the collapsed axis (`shape[axis]`).
     ///
     /// The result has rank reduced by 1. For a tensor with shape `[2, 3]`:
     /// - `mean(axis: 0)` produces shape `[3]` (mean across rows)

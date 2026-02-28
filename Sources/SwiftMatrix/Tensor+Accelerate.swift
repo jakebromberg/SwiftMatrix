@@ -323,15 +323,15 @@ extension Tensor where Element: AccelerateFloatingPoint {
             // Sum across rows -> shape [cols]
             var result = [Element](repeating: .zero, count: cols)
             elements.withUnsafeBufferPointer { buf in
-                for i in 0..<rows {
-                    let rowBuf = UnsafeBufferPointer(
-                        start: buf.baseAddress! + i * cols,
-                        count: cols
-                    )
-                    result.withUnsafeMutableBufferPointer { resBuf in
-                        for j in 0..<cols {
-                            resBuf[j] += rowBuf[j]
-                        }
+                result.withUnsafeMutableBufferPointer { resBuf in
+                    for i in 0..<rows {
+                        let rowBuf = UnsafeBufferPointer(
+                            start: buf.baseAddress! + i * cols,
+                            count: cols
+                        )
+                        Element._vDSPAdd(
+                            UnsafeBufferPointer(resBuf), rowBuf,
+                            result: resBuf)
                     }
                 }
             }
