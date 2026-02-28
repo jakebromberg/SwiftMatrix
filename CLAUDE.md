@@ -13,6 +13,7 @@ Tests use Swift Testing (`@Test`, `#expect`). No XCTest.
 
 ```
 Sources/SwiftMatrix/     -- library source
+Sources/Benchmarks/      -- performance benchmark suite
 Tests/SwiftMatrixTests/  -- tests
 ```
 
@@ -74,3 +75,13 @@ Element-wise `+`, `-`, `*`, scalar `*`, scalar `/`, negation, and compound assig
 ### Accelerate optimizations
 
 On Apple platforms, `Float` and `Double` tensors use vDSP/CBLAS via the `AccelerateFloatingPoint` protocol. Overload resolution selects the Accelerate path automatically; generic implementations remain as fallbacks for other element types and non-Apple platforms. Wrapped in `#if canImport(Accelerate)`. Covers reductions (sum, mean, dot, matmul) and element-wise arithmetic (+, -, *, /, scalar variants, negation).
+
+### Benchmarks
+
+`Sources/Benchmarks/` is an executable target that compares SwiftMatrix against [Surge](https://github.com/Jounce/Surge) and [Matft](https://github.com/jjjkkkjjj/Matft) on four operations (matrix addition, matrix multiplication, sum reduction, dot product) at three sizes (64x64, 256x256, 1024x1024) for both `Float` and `Double`.
+
+```bash
+swift run -c release Benchmarks
+```
+
+The target uses `.swiftLanguageMode(.v5)` because Surge and Matft lack `Sendable` conformances. Shared data is generated as raw `[Float]`/`[Double]` arrays and converted to each library's types outside the timed section. An `@inline(never)` `blackHole()` function prevents dead-code elimination in release builds.
